@@ -1,10 +1,10 @@
-var express = require('express');
-var app = express();
-var fs = require('fs');
+const express = require('express');
+const app = express();
+const fs = require('fs');
 const readline = require('readline');
 const open = require('open');
 
-var rimraf = require("rimraf");
+const rimraf = require("rimraf");
 const multer = require("multer");
 const https = require('https');
 //const PNG = require('pngjs').PNG;
@@ -12,8 +12,7 @@ const extract = require('png-chunks-extract');
 const encode = require('png-chunks-encode');
 const PNGtext = require('png-chunk-text');
 
-const sharp = require('sharp');
-sharp.cache(false);
+const jimp = require('jimp');
 const path = require('path');
 
 const cookieParser = require('cookie-parser');
@@ -26,7 +25,7 @@ const whitelist = config.whitelist;
 const whitelistMode = config.whitelistMode;
 const autorun = config.autorun;
 const enableExtensions = config.enableExtensions;
-
+const listen = config.listen;
 
 var Client = require('node-rest-client').Client;
 var client = new Client();
@@ -57,7 +56,7 @@ var api_key_novel;
 //New chats made with characters will use this new formatting.
 //Useable variable is (( humanizedISO8601Datetime ))
 
-
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 function humanizedISO8601DateTime() {
     let baseDate = new Date(Date.now());
@@ -199,7 +198,7 @@ app.get("/notes/*", function (request, response) {
 app.post("/getlastversion", jsonParser, function (request, response_getlastversion = response) {
     if (!request.body) return response_getlastversion.sendStatus(400);
 
-    const repo = 'TavernAI/TavernAI';
+    const repo = 'SillyLossy/TavernAI';
     let req;
     req = https.request({
         hostname: 'github.com',
@@ -208,7 +207,7 @@ app.post("/getlastversion", jsonParser, function (request, response_getlastversi
     }, (res) => {
         if (res.statusCode === 302) {
             const glocation = res.headers.location;
-            const versionStartIndex = glocation.lastIndexOf('@') + 1;
+            const versionStartIndex = glocation.lastIndexOf('/tag/') + 5;
             const version = glocation.substring(versionStartIndex);
             //console.log(version);
             response_getlastversion.send({ version: version });
@@ -226,7 +225,7 @@ app.post("/getlastversion", jsonParser, function (request, response_getlastversi
 });
 
 //**************Kobold api
-app.post("/generate", jsonParser, function (request, response_generate = response) {
+app.post("/generate", jsonParser, async function (request, response_generate = response) {
     if (!request.body) return response_generate.sendStatus(400);
     //console.log(request.body.prompt);
     //const dataJson = JSON.parse(request.body);
@@ -239,7 +238,8 @@ app.post("/generate", jsonParser, function (request, response_generate = respons
         use_memory: false,
         use_authors_note: false,
         use_world_info: false,
-        max_context_length: request.body.max_context_length
+        max_context_length: request.body.max_context_length,
+        singleline: !!request.body.singleline,
         //temperature: request.body.temperature,
         //max_length: request.body.max_length
     };
@@ -263,7 +263,8 @@ app.post("/generate", jsonParser, function (request, response_generate = respons
             top_k: request.body.top_k,
             top_p: request.body.top_p,
             typical: request.body.typical,
-            sampler_order: sampler_order
+            sampler_order: sampler_order,
+            singleline: !!request.body.singleline,
         };
     }
 
@@ -272,24 +273,33 @@ app.post("/generate", jsonParser, function (request, response_generate = respons
         data: this_settings,
         headers: { "Content-Type": "application/json" }
     };
-    client.post(api_server + "/v1/generate", args, function (data, response) {
-        if (response.statusCode == 200) {
+
+    const MAX_RETRIES = 10;
+    const delayAmount = 3000;
+    for (let i = 0; i < MAX_RETRIES; i++) {
+        try {
+            const data = await postAsync(api_server + "/v1/generate", args);
             console.log(data);
-            response_generate.send(data);
+            return response_generate.send(data);
         }
-        if (response.statusCode == 422) {
-            console.log('Validation error');
-            response_generate.send({ error: true });
+        catch (error) {
+            // data
+            console.log(error[0]);
+
+            // response
+            if (error[1]) {
+                switch (error[1].statusCode) {
+                    case 503:
+                        await delay(delayAmount);
+                        break;
+                    default:
+                        return response_generate.send({ error: true });
+                }
+            } else {
+                return response_generate.send({ error: true });
+            }
         }
-        if (response.statusCode == 501 || response.statusCode == 503 || response.statusCode == 507) {
-            console.log(data);
-            response_generate.send({ error: true });
-        }
-    }).on('error', function (err) {
-        console.log(err);
-        //console.log('something went wrong on the request', err.request.options);
-        response_generate.send({ error: true });
-    });
+    }
 });
 
 //************** Text generation web UI
@@ -601,49 +611,45 @@ app.post("/editcharacter", urlencodedParser, async function (request, response) 
     }
 });
 app.post("/deletecharacter", urlencodedParser, function (request, response) {
-    if (!request.body) return response.sendStatus(400);
-    rimraf(charactersPath + request.body.avatar_url, (err) => {
+    if (!request.body || !request.body.avatar_url) {
+        return response.sendStatus(400);
+    }
+
+    const avatarPath = charactersPath + request.body.avatar_url;
+    if (!fs.existsSync(avatarPath)) {
+        return response.sendStatus(400);
+    }
+
+    fs.rmSync(avatarPath);
+    let dir_name = request.body.avatar_url;
+    rimraf(chatsPath + dir_name.replace('.png', ''), (err) => {
         if (err) {
             response.send(err);
             return console.log(err);
         } else {
             //response.redirect("/");
-            let dir_name = request.body.avatar_url;
-            rimraf(chatsPath + dir_name.replace('.png', ''), (err) => {
-                if (err) {
-                    response.send(err);
-                    return console.log(err);
-                } else {
-                    //response.redirect("/");
 
-                    response.send('ok');
-                }
-            });
+            response.send('ok');
         }
     });
 });
 
 async function charaWrite(img_url, data, target_img, response = undefined, mes = 'ok') {
     try {
-        // Load the image in any format
-        sharp.cache(false);
-        var image = await sharp(img_url).resize(400, 600).toFormat('png').toBuffer();// old 170 234
-        // Convert the image to PNG format
-        //const pngImage = image.toFormat('png');
-
-        // Resize the image to 100x100
-        //const resizedImage = pngImage.resize(100, 100);
+        // Read the image, resize, and save it as a PNG into the buffer
+        const rawImg = await jimp.read(img_url);
+        const image = await rawImg.cover(400, 600).getBufferAsync(jimp.MIME_PNG);
 
         // Get the chunks
-        var chunks = extract(image);
-        var tEXtChunks = chunks.filter(chunk => chunk.create_date === 'tEXt');
+        const chunks = extract(image);
+        const tEXtChunks = chunks.filter(chunk => chunk.create_date === 'tEXt');
 
         // Remove all existing tEXt chunks
-        for (var tEXtChunk of tEXtChunks) {
+        for (let tEXtChunk of tEXtChunks) {
             chunks.splice(chunks.indexOf(tEXtChunk), 1);
         }
         // Add new chunks before the IEND chunk
-        var base64EncodedData = Buffer.from(data, 'utf8').toString('base64');
+        const base64EncodedData = Buffer.from(data, 'utf8').toString('base64');
         chunks.splice(-1, 0, PNGtext.encode('chara', base64EncodedData));
         //chunks.splice(-1, 0, text.encode('lorem', 'ipsum'));
 
@@ -662,7 +668,6 @@ async function charaWrite(img_url, data, target_img, response = undefined, mes =
 
 
 function charaRead(img_url) {
-    sharp.cache(false);
     const buffer = fs.readFileSync(img_url);
     const chunks = extract(buffer);
 
@@ -1378,7 +1383,9 @@ app.post('/uploaduseravatar', urlencodedParser, async (request, response) => {
 
     try {
         const pathToUpload = path.join('./uploads/' + request.file.filename);
-        const image = await sharp(pathToUpload).resize(400, 400).toFormat('png').toBuffer();
+        const rawImg = await jimp.read(pathToUpload);
+        const image = await rawImg.cover(400, 400).getBufferAsync(jimp.MIME_PNG);
+
         const filename = `${Date.now()}.png`;
         const pathToNewFile = path.join(directories.avatars, filename);
         fs.writeFileSync(pathToNewFile, image);
@@ -1522,7 +1529,7 @@ function postAsync(url, args) {
     return new Promise((resolve, reject) => {
         client.post(url, args, (data, response) => {
             if (response.statusCode >= 400) {
-                reject(data);
+                reject([data, response]);
             }
             resolve(data);
         }).on('error', e => reject(e));
@@ -1541,7 +1548,7 @@ function getAsync(url, args) {
 }
 // ** END **
 
-app.listen(server_port, function () {
+app.listen(server_port, (listen ? '0.0.0.0' : '127.0.0.1'), function () {
     if (process.env.colab !== undefined) {
         if (process.env.colab == 2) {
             is_colab = true;

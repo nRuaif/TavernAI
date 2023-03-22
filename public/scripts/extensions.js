@@ -1,217 +1,241 @@
+import { callPopup } from "../script.js";
+import { isSubsetOf } from "./utils.js";
+export {
+    getContext,
+    getApiUrl,
+    defaultRequestArgs,
+};
 
+const extensionNames = ['caption', 'dice', 'expressions', 'floating-prompt', 'memory'];
+const manifests = await getManifests(extensionNames);
 const extensions_urlKey = 'extensions_url';
 const extensions_autoConnectKey = 'extensions_autoconnect';
-let extensions = [];
+const extensions_disabledKey = 'extensions_disabled';
 
-(function () {
-    const settings_html = `
-    <div class="extensions_block">
-        <hr>
-        <h3>Extensions: <a target="_blank" href="https://github.com/SillyLossy/TavernAI-extras">TavernAI-extras</a></h3>
-        <input id="extensions_url" type="text" class="text_pole" />
-        <div class="extensions_url_block">
-            <input id="extensions_connect" class="menu_button" type="submit" value="Connect" />
-            <span class="expander"></span>
-            <label for="extensions_autoconnect"><input id="extensions_autoconnect" type="checkbox"/>Auto-connect</label>
-        </div>
-        <div id="extensions_status">Not connected</div>
-        <div id="extensions_loaded">
-            <h4>Active extensions</h4>
-            <ul id="extensions_list">
-            </ul>
-        </div>
-        <div id="extensions_settings">
-            <h3>Extension settings</h3>
-        </div>
-    </div>
-    `;
+let modules = [];
+let disabledExtensions = getDisabledExtensions();
+let activeExtensions = new Set();
 
-    const settings_style = `
-    <style>
-    #extensions_url {
-        display: block;
-    }
-    
-    #extensions_loaded {
-        display: none;
-    }
-    
-    #extensions_status {
-        margin-bottom: 10px;
-        font-weight: 700;
-    }
-    
-    .extensions_block input[type="submit"]:hover{
-        background-color: green;
-    }
-    
-    .extensions_block input[type="checkbox"] {
-        margin-left: 10px;
-        margin-right: 10px;
-    }
-    
-    label[for="extensions_autoconnect"] {
-        display: flex;
-        align-items: center;
-        margin: 0 !important;
-    }
+const getContext = () => window['TavernAI'].getContext();
+const getApiUrl = () => localStorage.getItem('extensions_url');
+const defaultUrl = "http://localhost:5100";
+const defaultRequestArgs = { method: 'GET', headers: { 'Bypass-Tunnel-Reminder': 'bypass' } };
+let connectedToApi = false;
 
-    .extensions_url_block {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    
-    .extensions_url_block h4 {
-        display: inline;
-    }
-    
-    .extensions_block {
-        clear: both;
-        padding: 0.05px; /* clear fix */
-    }
-    
-    .success {
-        color: green;
-    }
-    
-    .failure {
-        color: red;
-    }
-    
-    .expander {
-        flex-grow: 1;
-    }
-    </style>
-    `;
+function getDisabledExtensions() {
+    const value = localStorage.getItem(extensions_disabledKey);
+    return value ? JSON.parse(value) : [];
+}
 
-    const defaultUrl = "http://localhost:5100";
-    let connectedToApi = false;
+function onDisableExtensionClick() {
+    const name = $(this).data('name');
+    disableExtension(name);
+}
 
-    async function connectClickHandler() {
-        const baseUrl = $("#extensions_url").val();
-        localStorage.setItem(extensions_urlKey, baseUrl);
-        await connectToApi(baseUrl);
-    }
+function onEnableExtensionClick() {
+    const name = $(this).data('name');
+    enableExtension(name);
+}
 
-    function autoConnectInputHandler() {
-        const value = $(this).prop('checked');
-        localStorage.setItem(extensions_autoConnectKey, value.toString());
+function enableExtension(name) {
+    disabledExtensions = disabledExtensions.filter(x => x !== name);
+    localStorage.setItem(extensions_disabledKey, JSON.stringify(disabledExtensions));
+    location.reload();
+}
 
-        if (value && !connectedToApi) {
-            $("#extensions_connect").trigger('click');
+function disableExtension(name) {
+    disabledExtensions.push(name);
+    localStorage.setItem(extensions_disabledKey, JSON.stringify(disabledExtensions));
+    location.reload();
+}
+
+async function getManifests(names) {
+    const obj = {};
+    for (const name of names) {
+        const response = await fetch(`/scripts/extensions/${name}/manifest.json`);
+
+        if (response.ok) {
+            const json = await response.json();
+            obj[name] = json;
         }
     }
+    return obj;
+}
 
-    async function connectToApi(baseUrl) {
-        const url = new URL(baseUrl);
-        url.pathname = '/api/extensions';
+async function activateExtensions() {
+    const extensions = Object.entries(manifests).sort((a, b) => a[1].loading_order - b[1].loading_order);
 
-        try {
-            const getExtensionsResult = await fetch(url, { method: 'GET', headers: { 'Bypass-Tunnel-Reminder': 'bypass' } });
+    for (let entry of extensions) {
+        const name = entry[0];
+        const manifest = entry[1];
 
-            if (getExtensionsResult.ok) {
-                const data = await getExtensionsResult.json();
-                extensions = data.extensions;
-                applyExtensions(baseUrl);
+        if (activeExtensions.has(name)) {
+            continue;
+        }
+
+        // all required modules are active (offline extensions require none)
+        if (isSubsetOf(modules, manifest.requires)) {
+            try {
+                const isDisabled = disabledExtensions.includes(name);
+                const li = document.createElement('li');
+
+                if (!isDisabled) {
+                    await addExtensionScript(name, manifest);
+                    await addExtensionStyle(name, manifest);
+                    activeExtensions.add(name);
+                }
+                else {
+                    li.classList.add('disabled');
+                }
+
+                li.id = name;
+                li.innerText = manifest.display_name;
+
+                $('#extensions_list').append(li);
             }
-
-            updateStatus(getExtensionsResult.ok);
-        }
-        catch {
-            updateStatus(false);
+            catch (error) {
+                console.error(`Could not activate extension: ${name}`);
+                console.error(error);
+            }
         }
     }
+}
 
-    function updateStatus(success) {
-        connectedToApi = success;
-        const _text = success ? 'Connected to API' : 'Could not connect to API';
-        const _class = success ? 'success' : 'failure';
-        $('#extensions_status').text(_text);
-        $('#extensions_status').attr('class', _class);
+async function connectClickHandler() {
+    const baseUrl = $("#extensions_url").val();
+    localStorage.setItem(extensions_urlKey, baseUrl);
+    await connectToApi(baseUrl);
+}
 
-        if (success && extensions.length) {
-            $('#extensions_loaded').show(200);
-            $('#extensions_settings').show(200);
-            $('#extensions_list').empty();
+function autoConnectInputHandler() {
+    const value = $(this).prop('checked');
+    localStorage.setItem(extensions_autoConnectKey, value.toString());
 
-            for (let extension of extensions) {
-                $('#extensions_list').append(`<li id="${extension.name}">${extension.metadata.display_name}</li>`);
+    if (value && !connectedToApi) {
+        $("#extensions_connect").trigger('click');
+    }
+}
+
+async function connectToApi(baseUrl) {
+    const url = new URL(baseUrl);
+    url.pathname = '/api/modules';
+
+    try {
+        const getExtensionsResult = await fetch(url, defaultRequestArgs);
+
+        if (getExtensionsResult.ok) {
+            const data = await getExtensionsResult.json();
+            modules = data.modules;
+            activateExtensions();
+        }
+
+        updateStatus(getExtensionsResult.ok);
+    }
+    catch {
+        updateStatus(false);
+    }
+}
+
+function updateStatus(success) {
+    connectedToApi = success;
+    const _text = success ? 'Connected to API' : 'Could not connect to API';
+    const _class = success ? 'success' : 'failure';
+    $('#extensions_status').text(_text);
+    $('#extensions_status').attr('class', _class);
+}
+
+function addExtensionStyle(name, manifest) {
+    if (manifest.css) {
+        return new Promise((resolve, reject) => {
+            const url = `/scripts/extensions/${name}/${manifest.css}`;
+
+            if ($(`link[id="${name}"]`).length === 0) {
+                const link = document.createElement('link');
+                link.id = name;
+                link.rel = "stylesheet";
+                link.type = "text/css";
+                link.href = url;
+                link.onload = function () {
+                    resolve();
+                }
+                link.onerror = function (e) {
+                    reject(e);
+                }
+                document.head.appendChild(link);
             }
+        });
+    }
+
+    return Promise.resolve();
+}
+
+function addExtensionScript(name, manifest) {
+    if (manifest.js) {
+        return new Promise((resolve, reject) => {
+            const url = `/scripts/extensions/${name}/${manifest.js}`;
+            let ready = false;
+
+            if ($(`script[id="${name}"]`).length === 0) {
+                const script = document.createElement('script');
+                script.id = name;
+                script.type = 'module';
+                script.src = url;
+                script.async = true;
+                script.onerror = function (err) {
+                    reject(err, script);
+                };
+                script.onload = script.onreadystatechange = function () {
+                    // console.log(this.readyState); // uncomment this line to see which ready states are called.
+                    if (!ready && (!this.readyState || this.readyState == 'complete')) {
+                        ready = true;
+                        resolve();
+                    }
+                };
+                document.body.appendChild(script);
+            }
+        });
+    }
+
+    return Promise.resolve();
+}
+
+function showExtensionsDetails() {
+    let html = '<h3>Modules provided by your Extensions API:</h3>';
+    html += modules.length ? DOMPurify.sanitize(modules.join(', ')) : '<p class="failure">Not connected to the API!</p>';
+    html += '<h3>Available extensions:</h3>';
+
+    Object.entries(manifests).sort((a, b) => a[1].loading_order - b[1].loading_order).forEach(extension => {
+        const name = extension[0];
+        const manifest = extension[1];
+        html += `<h4>${DOMPurify.sanitize(manifest.display_name)}</h4>`;
+        if (activeExtensions.has(name)) {
+            html += `<p class="success">Extension is active. <a href="javascript:void" data-name="${name}" class="disable_extension">Disable</a></p>`;
+        }
+        else if (disabledExtensions.includes(name)) {
+            html += `<p class="disabled">Extension is disabled. <a href="javascript:void" data-name=${name} class="enable_extension">Enable</a></p>`;
         }
         else {
-            $('#extensions_loaded').hide(200);
-            $('#extensions_settings').hide(200);
-            $('#extensions_list').empty();
+            const requirements = new Set(manifest.requires);
+            modules.forEach(x => requirements.delete(x));
+            const requirementsString = DOMPurify.sanitize([...requirements].join(', '));
+            html += `<p>Missing modules: <span class="failure">${requirementsString}</span></p>`
         }
-    }
-
-    function applyExtensions(baseUrl) {
-        const url = new URL(baseUrl);
-
-        if (!Array.isArray(extensions) || extensions.length === 0) {
-            return;
-        }
-
-        for (let extension of extensions) {
-            addExtensionStyle(extension);
-            addExtensionScript(extension);
-        }
-
-        async function addExtensionStyle(extension) {
-            if (extension.metadata.css) {
-                try {
-                    url.pathname = `/api/style/${extension.name}`;
-                    const link = url.toString();
-
-                    const result = await fetch(link, { method: 'GET', headers: { 'Bypass-Tunnel-Reminder': 'bypass' } });
-                    const text = await result.text();
-
-                    if ($(`style[id="${link}"]`).length === 0) {
-                        const style = document.createElement('style');
-                        style.id = link;
-                        style.innerHTML = text;
-                        $('head').append(style);
-                    }
-                }
-                catch (error) {
-                    console.log(error);
-                }
-            }
-        }
-
-        async function addExtensionScript(extension) {
-            if (extension.metadata.js) {
-                try {
-                    url.pathname = `/api/script/${extension.name}`;
-                    const link = url.toString();
-
-                    const result = await fetch(link, { method: 'GET', headers: { 'Bypass-Tunnel-Reminder': 'bypass' } });
-                    const text = await result.text();
-
-                    if ($(`script[id="${link}"]`).length === 0) {
-                        const script = document.createElement('script');
-                        script.id = link;
-                        script.type = 'module';
-                        script.innerHTML = text;
-                        $('body').append(script);
-                    }
-                }
-                catch (error) {
-                    console.log(error);
-                }
-            }
-        }
-    }
-
-    $(document).ready(async function () {
-        const url = localStorage.getItem(extensions_urlKey) ?? defaultUrl;
-        const autoConnect = localStorage.getItem(extensions_autoConnectKey) == 'true';
-        $('#rm_api_block').append(settings_html);
-        $('head').append(settings_style);
-        $("#extensions_url").val(url);
-        $("#extensions_connect").on('click', connectClickHandler);
-        $("#extensions_autoconnect").on('input', autoConnectInputHandler);
-        $("#extensions_autoconnect").prop('checked', autoConnect).trigger('input');
     });
-})();
+
+    callPopup(`<div class="extensions_info">${html}</div>`, 'text');
+}
+
+$(document).ready(async function () {
+    const url = localStorage.getItem(extensions_urlKey) ?? defaultUrl;
+    const autoConnect = localStorage.getItem(extensions_autoConnectKey) == 'true';
+    $("#extensions_url").val(url);
+    $("#extensions_connect").on('click', connectClickHandler);
+    $("#extensions_autoconnect").on('input', autoConnectInputHandler);
+    $("#extensions_autoconnect").prop('checked', autoConnect).trigger('input');
+    $("#extensions_details").on('click', showExtensionsDetails);
+    $(document).on('click', '.disable_extension', onDisableExtensionClick);
+    $(document).on('click', '.enable_extension', onEnableExtensionClick);
+
+    // Activate offline extensions
+    activateExtensions();
+});

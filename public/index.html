@@ -4,20 +4,26 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <!--<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">-->
     <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script>-->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&amp;display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&amp;display=swap" rel="stylesheet">
 
+    <link rel="apple-touch-icon" sizes="57x57" href="img/apple-icon-57x57.png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="img/apple-icon-72x72.png" />
+    <link rel="apple-touch-icon" sizes="114x114" href="img/apple-icon-114x114.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="img/apple-icon-144x144.png" />
 
     <script src="scripts/jquery-3.5.1.min.js"></script>
     <script src="scripts/jquery.transit.min.js"></script>
     <script src="scripts/jquery-cookie-1.4.1.min.js"></script>
     <script src="scripts/showdown.min.js"></script>
     <script src="scripts/popper.js"></script>
+    <script src="scripts/purify.min.js"></script>
+    <script type="module" src="scripts/RossAscends-mods.js"></script>
+    <script type="module" src="scripts/swiped-events.js"></script>
     <link rel="stylesheet" type="text/css" href="style.css">
     <link rel="stylesheet" href="css/bg_load.css">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -37,6 +43,11 @@
 
     <script type=module src="script.js">
     </script>
+
+    <script type="module" src="scripts/world-info.js"></script>
+    <script type="module" src="scripts/group-chats.js"></script>
+    <script type="module" src="scripts/power-user.js"></script>
+    <script type="module" src="scripts/kai-settings.js"></script>
 
     <title>Tavern.AI</title>
 </head>
@@ -98,7 +109,7 @@
 
         <div id="talkativeness_div">
             <h4>Talkativeness</h4>
-            <h5>How often does the character speak randomly.&nbsp;<span class="warning">Affects group chats only!</span>
+            <h5>How often the chracter speaks in &nbsp;<span class="warning">group chats!</span>
             </h5>
             <input id="talkativeness_slider" name="talkativeness" type="range" min="0" max="1" step="0.05" value="0.5"
                 form="form_create">
@@ -235,13 +246,13 @@
     <div id="shadow_select_chat_popup">
         <div id="select_chat_popup">
             <div id="select_chat_popup_text">
-                <img id="select_chat_cross" src="img/cross.png"
-                    style="position: absolute; right: 15px; top:14px; width: 20px; height: 20px; cursor: pointer; opacity: 0.6">
+                <img id="select_chat_cross" src="img/cross.png" alt="Close">
 
             </div>
             <div id="select_chat_import"> <!-- import chat popup header -->
-
-                <input id="chat_import_button" class="menu_button" type="submit" value="+Import">
+                <div id="chat_import_button" class="right_menu_button">
+                    <img alt="" class="svg_icon" src="img/cloud-arrow-up-solid.svg" />
+                </div>
                 <div>
                     <a href="/notes/10" class="notes-link" target="_blank"><span class="note-link-span">?</span></a>
                 </div>
@@ -312,21 +323,33 @@
 
     <nav id="right-nav-panel">
         <div id="right-nav-panel-tabs">
-            <div class="right_menu_button" id="rm_button_characters" title="Select/Create Characters">&#x1F464;</div>
-            <div class="right_menu_button" id="rm_button_settings" title="API and AI Settings">⚙️</div>
+            <div class="right_menu_button" id="rm_button_characters" title="Select/Create Characters">
+                <img alt="" class="svg_icon" src="img/id-card-regular.svg" />
+            </div>
+            <div class="right_menu_button" id="rm_button_settings" title="API and AI Settings">
+                <img alt="" class="svg_icon" src="img/gear-solid.svg" />
+            </div>
+            <div class="right_menu_button" id="rm_button_extensions" title="Extensions">
+                <img alt="" class="svg_icon" src="img/cubes-solid.svg" />
+            </div>
             <div class="right_menu_button" id="rm_button_selected_ch">
                 <h2></h2>
             </div>
-            <div class="right_menu_button" id="rm_button_panel_pin_div"><input type="checkbox" id="rm_button_panel_pin"
-                    title="Locked = Settings panel stays open"></div>
+            <div class="right_menu_button" id="rm_button_panel_pin_div" title="Locked = Settings panel stays open">
+                <input type="checkbox" id="rm_button_panel_pin">
+                <label for="rm_button_panel_pin">
+                    <img class="unchecked svg_icon" alt="" src="img/lock-open-solid.svg" />
+                    <img class="checked svg_icon" alt="" src="img/lock-solid.svg" />
+                </label>
+            </div>
         </div>
 
         <div id="rm_ch_create_block" class="right_menu" style="display: none;">
             <form id="form_create" action="javascript:void(null);" method="post" enctype="multipart/form-data">
                 <div id="avatar-and-name-block">
                     <div id="name_div">
-                        <h4>Character Name</h4><br>
-                        <input id="character_name_pole" name="ch_name" class="text_pole" maxlength="120" value=""
+                        <h4>Character Name</h4>
+                        <input id="character_name_pole" name="ch_name" class="text_pole" placeholder="Name this character" maxlength="120" value=""
                             autocomplete="off">
                     </div>
                     <div id="avatar_div" class="avatar_div">
@@ -337,24 +360,44 @@
                             title="Click to select a new avatar for this character">
                             <input type="file" id="add_avatar_button" name="avatar"
                                 accept="image/png, image/jpeg, image/jpg, image/gif, image/bmp">
-                            Change Avatar
+                                <img alt="" class="svg_icon" src="img/file-image-solid.svg">
                         </label>
+                        <div class="form_create_bottom_buttons_block">
+                            <div id="rm_button_back" class="menu_button">
+                                <img alt="" class="svg_icon" src="img/left-long-solid.svg">
+                            </div>
+                            <div id="advanced_div" class="menu_button" title="Advanced Definitions">
+                                <img alt="" class="svg_icon" src="img/book-solid.svg">
+                            </div>
+                            <div id="export_button" class="menu_button" title="Export and Download">
+                                <img alt="" class="svg_icon" src="img/file-export-solid.svg">
+                            </div>
+                            <!-- <div id="create_button" class="menu_button" type="submit" title="Create Character">✅</div> -->
+                            <label for="create_button" id="create_button_label" class="menu_button" title="Create Character">
+                                <input type="submit" id="create_button" name="create_button">
+                                <img alt="" class="svg_icon" src="img/user-check-solid.svg">
+                            </label>
+                            <!-- <input id="create_button" class="menu_button" title="Create Character" type="submit" value="✅"> -->
+                            <div id="delete_button" class="menu_button" title="Delete Character" >
+                                <img alt="" class="svg_icon" src="img/trash-can-solid.svg">
+                            </div>
+                        </div>
                     </div>
-                    <div id="result_info" style="width: 100px;">&nbsp;</div>
+                    <div id="result_info"></div>
                 </div>
                 <hr>
-                <div id="description_div" class="margin-bot-10px">
+                <div id="description_div"  class="margin-bot-10px">
                     <h4>Description <a href="/notes/1" class="notes-link" target="_blank"><span
                                 class="note-link-span">?</span></a></h4>
                 </div>
-                <textarea id="description_textarea" class="margin-bot-10px" name="description"
+                <textarea id="description_textarea" placeholder="Describe your character's physical and mental traits here." class="margin-bot-10px" name="description"
                     placeholder=""></textarea>
 
-                <div id="first_message_div" class="margin-bot-10px">
+                <div id="first_message_div"  class="margin-bot-10px">
                     <h4>First message<a href="/notes/3" class="notes-link" target="_blank"><span
                                 class="note-link-span">?</span></a></h4>
                 </div>
-                <textarea id="firstmessage_textarea" class="margin-bot-10px" name="first_mes" placeholder=""></textarea>
+                <textarea id="firstmessage_textarea" placeholder="This will be the first message from the character that starts every chat." class="margin-bot-10px" name="first_mes" placeholder=""></textarea>
 
                 <!-- these divs are invisible and used for server communication purposes -->
                 <div id="hidden-divs">
@@ -376,23 +419,12 @@
                     </div>
                 </div>
                 <!-- now back to normal divs for display purposes-->
-
-                <input id="advanced_div" class="menu_button" type="button" value="Advanced Edit">
-
-                <div class="form_create_bottom_buttons_block">
-                    <div id="rm_button_back" class="menu_button">Go Back</div>
-                    <input id="delete_button" class="menu_button" type="button" value="Delete">
-                    <input id="export_button" class="menu_button" type="button" value="Export">
-                    <input id="create_button" class="menu_button" type="submit" value="Create">
-
-                </div>
-
             </form>
         </div>
         <div id="rm_group_chats_block" class="right_menu">
             <div id="rm_group_top_bar">
-                <div id="rm_button_back_from_group" class="right_menu_button">
-                    <h2 style="color: rgb(188, 193, 200, 0.5);">&#8656;</h2>
+                <div id="rm_button_back_from_group" class="menu_button">
+                    <img alt="" class="svg_icon" src="img/left-long-solid.svg">
                 </div>
                 <input id="rm_group_chat_name" class="text_pole" type="text" name="chat_name"
                     placeholder="Chat Name (Optional)" />
@@ -410,12 +442,12 @@
             <div id="group_member_template">
                 <div class="group_member">
                     <div class="avatar">
-                        <img src="" />
+                        <img alt="Avatar" src="" />
                     </div>
                     <div class="ch_name"></div>
                     <div class="group_member_icon">
-                        <img class="minus" src="img/minus-solid.svg">
-                        <img class="plus" src="img/plus-solid.svg">
+                        <img alt="Remove" class="minus svg_icon" src="img/minus-solid.svg">
+                        <img alt="Add" class="plus svg_icon" src="img/plus-solid.svg">
                     </div>
                 </div>
             </div>
@@ -426,7 +458,7 @@
                         <img src="">
                     </div>
                     <div class="group_icon">
-                        <img src="img/user-group-solid.svg">
+                        <img class="svg_icon" src="img/user-group-solid.svg">
                     </div>
                     <div class="ch_name"></div>
                 </div>
@@ -457,7 +489,7 @@
                 <div id="kobold_api" style="position: relative;"> <!-- shows the kobold settings -->
                     <div class="API-logo">
                         <a href="https://github.com/KoboldAI/KoboldAI-Client" target="_blank">
-                            <img src="img/kobold.png" style="width:40px;height:40px;">
+                            <img alt="KoboldAI Logo" src="img/kobold.png" style="width:40px;height:40px;">
                         </a>
                     </div>
                     <form action="javascript:void(null);" method="post" enctype="multipart/form-data">
@@ -476,8 +508,11 @@
                     <hr>
 
                     <div id="ai-presets-and-config-block">
-                        <h4>Preset settings <a href="/notes/4" class="notes-link" target="_blank"><span
-                                    class="note-link-span">?</span></a></h4>
+                        <h3>Preset settings
+                            <a href="/notes/4" class="notes-link" target="_blank">
+                                <span class="note-link-span">?</span>
+                            </a>
+                        </h3>
                         <select id="settings_perset">
                             <option value="gui">GUI KoboldAI Settings</option>
                         </select>
@@ -507,10 +542,92 @@
                                     <h4>Repetition Penalty Range</h4>
                                 </div>
                                 <div class="range-block-counter">
-                                    <h5 id="rep_pen_size_counter">select</h5>
+                                    <h5 id="rep_pen_range_counter">select</h5>
                                 </div>
-                                <div class="range-block-range"><input type="range" id="rep_pen_size" name="volume"
+                                <div class="range-block-range"><input type="range" id="rep_pen_range" name="volume"
                                         min="0" max="2048" step="1"></div>
+                            </div>
+                        </div>
+                        <div class="drawer">
+                            <div class="drawer-toggle drawer-header">
+                                <h3>Advanced Settings
+                                    <a href="/notes/kai_advanced" class="notes-link" target="_blank">
+                                        <span class="note-link-span">?</span>
+                                    </a>
+                                </h3>
+                                <div class="drawer-icon down"></div>
+                            </div>
+                            <div class="drawer-content">
+                                <label class="checkbox_label" for="single_line">
+                                    <input id="single_line" type="checkbox" />
+                                    <h4>Single-line mode</h4>
+                                </label>
+                                <div class="range-block">
+                                    <div class="range-block-title">
+                                        <h4>Top P Sampling</h4>
+                                    </div>
+                                    <div class="range-block-counter">
+                                        <h5 id="top_p_counter">select</h5>
+                                    </div>
+                                    <div class="range-block-range">
+                                        <input type="range" id="top_p" name="volume" min="0" max="1" step="0.01">
+                                    </div>
+                                </div>
+                                <div class="range-block">
+                                    <div class="range-block-title">
+                                        <h4>Top A Sampling</h4>
+                                    </div>
+                                    <div class="range-block-counter">
+                                        <h5 id="top_a_counter">select</h5>
+                                    </div>
+                                    <div class="range-block-range">
+                                        <input type="range" id="top_a" name="volume" min="0" max="1" step="0.01">
+                                    </div>
+                                </div>
+                                <div class="range-block">
+                                    <div class="range-block-title">
+                                        <h4>Top K Sampling</h4>
+                                    </div>
+                                    <div class="range-block-counter">
+                                        <h5 id="top_k_counter">select</h5>
+                                    </div>
+                                    <div class="range-block-range">
+                                        <input type="range" id="top_k" name="volume" min="0" max="100" step="1">
+                                    </div>
+                                </div>
+                                <div class="range-block">
+                                    <div class="range-block-title">
+                                        <h4>Typical Sampling</h4>
+                                    </div>
+                                    <div class="range-block-counter">
+                                        <h5 id="typical_counter">select</h5>
+                                    </div>
+                                    <div class="range-block-range">
+                                        <input type="range" id="typical" name="volume" min="0" max="1" step="0.01">
+                                    </div>
+                                </div>
+                                <div class="range-block">
+                                    <div class="range-block-title">
+                                        <h4>Tail Free Sampling</h4>
+                                    </div>
+                                    <div class="range-block-counter">
+                                        <h5 id="tfs_counter">select</h5>
+                                    </div>
+                                    <div class="range-block-range">
+                                        <input type="range" id="tfs" name="volume" min="0" max="1" step="0.05">
+                                    </div>
+                                </div>
+                                <div class="range-block">
+                                    <div class="range-block-title">
+                                        <h4>Repetition Penalty Slope</h4>
+                                    </div>
+                                    <div class="range-block-counter">
+                                        <h5 id="rep_pen_slope_counter">select</h5>
+                                    </div>
+                                    <div class="range-block-range">
+                                        <input type="range" id="rep_pen_slope" name="volume" min="0" max="10" step="0.1">
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -562,19 +679,26 @@
                         <input type="range" id="rep_pen_size_textgenerationwebui" name="volume" min="0" max="2048"
                             step="1">
 
-                        <h4>Top K</h4>
-                        <h5 id="top_k_counter_textgenerationwebui">select</h5>
-                        <input type="range" id="top_k_textgenerationwebui" name="volume" min="0" max="200" step="1">
-                        <h4>Top P</h4>
-                        <h5 id="top_p_counter_textgenerationwebui">select</h5>
-                        <input type="range" id="top_p_textgenerationwebui" name="volume" min="0" max="1" step="0.1">
-                        <h4>Typical P</h4>
-                        <h5 id="typical_p_counter_textgenerationwebui">select</h5>
-                        <input type="range" id="typical_p_textgenerationwebui" name="volume" min="0" max="1" step="0.1">
-                        <h4>Penalty Alpha</h4>
-                        <h5 id="penalty_alpha_counter_textgenerationwebui">select</h5>
-                        <input type="range" id="penalty_alpha_textgenerationwebui" name="volume" min="0" max="5"
-                            step="0.05" />
+                        <div class="drawer">
+                            <div class="drawer-toggle drawer-header">
+                                <h3>Advanced Settings</h3>
+                                <div class="drawer-icon down"></div>
+                            </div>
+                            <div class="drawer-content">
+                                <h4>Top K</h4>
+                                <h5 id="top_k_counter_textgenerationwebui">select</h5>
+                                <input type="range" id="top_k_textgenerationwebui" name="volume" min="0" max="200" step="1">
+                                <h4>Top P</h4>
+                                <h5 id="top_p_counter_textgenerationwebui">select</h5>
+                                <input type="range" id="top_p_textgenerationwebui" name="volume" min="0" max="1" step="0.1">
+                                <h4>Typical P</h4>
+                                <h5 id="typical_p_counter_textgenerationwebui">select</h5>
+                                <input type="range" id="typical_p_textgenerationwebui" name="volume" min="0" max="1" step="0.1">
+                                <h4>Penalty Alpha</h4>
+                                <h5 id="penalty_alpha_counter_textgenerationwebui">select</h5>
+                                <input type="range" id="penalty_alpha_textgenerationwebui" name="volume" min="0" max="5" step="0.05" />
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -635,7 +759,8 @@
                     <input type="file" id="avatar_upload_file" accept="image/png" name="avatar">
                 </form>
                 <form id='form_change_name' action="javascript:void(null);" method="post" enctype="multipart/form-data">
-                    <h4>Name</h4><br>
+                    <br>
+                    <h4>Name</h4>
                     <input id="your_name" name="your_name" class="text_pole" maxlength="35" value=""
                         autocomplete="off"><br>
                     <input id="your_name_button" class="menu_button" type="submit"
@@ -698,6 +823,10 @@
                     <h5 id="max_context_counter">select</h5>
                     <input type="range" id="max_context" name="volume" min="512" max="2048" step="1">
                 </div>
+                <label class="checkbox_label" for="pin-examples-checkbox"><input id="pin-examples-checkbox" type="checkbox" />
+                    <h4>Pin message examples</h4>
+                </label>
+                <h5>Example dialogues stay in context</h5>
                 <div id="anchors-block">
                     <h4>Anchors Order</h4>
                     <h5>Helps to increase the length of messages <a href="/notes/9" class="notes-link"
@@ -712,6 +841,30 @@
                         </label>
                         <label for="style_anchor"><input id="style_anchor" type="checkbox" />
                             <h4>Style Anchor</h4>
+                        </label>
+                    </div>
+                </div>
+                <div class="drawer">
+                    <div class="drawer-toggle drawer-header">
+                        <h3>Advanced Formatting
+                            <a href="/notes/advanced_formatting" class="notes-link" target="_blank">
+                                <span class="note-link-span">?</span>
+                            </a>
+                        </h3>
+                        <div class="drawer-icon down"></div>
+                    </div>
+                    <div class="drawer-content">
+                        <label class="checkbox_label" for="disable-description-formatting-checkbox">
+                            <input id="disable-description-formatting-checkbox" type="checkbox" />
+                            <h4>Disable description formatting</h4>
+                        </label>
+                        <label class="checkbox_label" for="disable-scenario-formatting-checkbox">
+                            <input id="disable-scenario-formatting-checkbox" type="checkbox" />
+                            <h4>Disable scenario formatting</h4>
+                        </label>
+                        <label class="checkbox_label" for="disable-personality-formatting-checkbox">
+                            <input id="disable-personality-formatting-checkbox" type="checkbox" />
+                            <h4>Disable personality formatting</h4>
                         </label>
                     </div>
                 </div>
@@ -731,9 +884,36 @@
                     <label for="collapse-newlines-checkbox"><input id="collapse-newlines-checkbox" type="checkbox" />
                         <h4>Collapse Newlines in Output</h4>
                     </label>
+                    <label for="force-pygmalion-formatting-checkbox"><input id="force-pygmalion-formatting-checkbox" type="checkbox" />
+                        <h4>Force Pygmalion formatting for any model</h4>
+                    </label>
+                    <label for="swipes-checkbox"><input id="swipes-checkbox" type="checkbox" />
+                        <h4>Swipes</h4>
+                    </label>
                 </div>
             </div>
+        </div>
 
+        <div id="rm_extensions_block" class="right_menu">
+            <div class="extensions_block">
+                <h3>Extensions API: <a target="_blank" href="https://github.com/SillyLossy/TavernAI-extras">TavernAI-extras</a></h3>
+                <input id="extensions_url" type="text" class="text_pole" />
+                <div class="extensions_url_block">
+                    <input id="extensions_connect" class="menu_button" type="submit" value="Connect" />
+                    <span class="expander"></span>
+                    <label for="extensions_autoconnect"><input id="extensions_autoconnect" type="checkbox"/>Auto-connect</label>
+                </div>
+                <div id="extensions_status">Not connected</div>
+                <div id="extensions_loaded">
+                    <h4>Active extensions</h4>
+                    <ul id="extensions_list">
+                    </ul>
+                    <p>Missing something? Press <a id="extensions_details" href="javascript:void">here</a> for more details!</p>
+                </div>
+                <div id="extensions_settings">
+                    <h3>Extension settings</h3>
+                </div>
+            </div>
         </div>
 
         <div id="rm_character_import" class="right_menu" style="display: none;">
@@ -747,16 +927,19 @@
 
         <div id="rm_characters_block" class="right_menu">
             <div class="form_create_bottom_buttons_block">
-                <div id="rm_button_create" class="menu_button">+New Character</div>
-                <div id="character_import_button" class="menu_button">+Import</div>
-                <div id="rm_button_group_chats" class="menu_button">+Group</div>
+                <div id="rm_button_create" title="Create New Character" class="menu_button">
+                    <img alt="" class="svg_icon" src="img/user-plus-solid.svg">
+                </div>
+                <div id="character_import_button" title="Import Character from File" class="menu_button">
+                    <img alt="" class="svg_icon" src="img/file-arrow-up-solid.svg">
+                </div>
+                <div id="rm_button_group_chats" title="Create New Chat Group" class="menu_button">
+                    <img alt="" class="svg_icon" src="img/user-group-solid.svg">
+                </div>
             </div>
 
             <form id="form_character_search_form" action="javascript:void(null);">
-                <input id="character_search_bar" class="text_pole" type="search" placeholder="Search here..." />
-                <div id="characloud_url" class="menu_button" title="Find more characters on CharaCloud (coming soon)">
-                    <img src="img/cloud_logo.png">
-                </div>
+                <input id="character_search_bar" class="text_pole" type="search" placeholder="Character search..." />
             </form>
             <div id="rm_print_characters_block"></div>
 
@@ -772,6 +955,28 @@
 
     <div id="typing_indicator_template">
         <div class="typing_indicator"><span class="typing_indicator_name">CHAR</span> is typing</div>
+    </div>
+
+    <div id="message_template">
+        <div class="mes" mesid="${count_view_mes}" ch_name="${characterName}" is_user="${mes.is_user}">
+            <div class="for_checkbox"></div><input type="checkbox" class="del_checkbox">
+            <div class="avatar"><img src=""></div>
+            <div class="swipe_left"><img src="img/swipe_left.png"></div>
+            <div class="mes_block">
+                <div class="ch_name">
+                    <span class="name_text">${characterName}</span>
+                    <div title=Edit class=mes_edit></div>
+                    <div class=mes_edit_cancel><img src=img/cancel.png></div>
+                    <div class=mes_edit_done><img src=img/done.png></div>
+                </div>
+                <div class=mes_text></div>
+            </div>
+            <div class="mes_bias">${bias}</div>
+            <div class="swipe_right"> 
+                <div class="swipes-counter"></div>
+                <img src="img/swipe_right.png">
+            </div>
+        </div>
     </div>
 
     <div id="group_avatars_template">
@@ -807,26 +1012,26 @@
                 <div id="options_button">
                     <div id="options">
                         <div class="options-content">
-                            <a id="option_start_new_chat"><img src="img/save_and_start_new_chat.png"><span>Start new
-                                    chat</span></a>
-                            <a id="option_select_chat"><img src="img/book6.png"><span>View Past Chats</span></a>
+                            <a id="option_start_new_chat">
+                                <img alt="" src="img/save_and_start_new_chat.png">
+                                <span>Start new chat</span></a>
+                            <a id="option_select_chat">
+                                <img alt="" src="img/book6.png">
+                                <span>View Past Chats</span>
+                            </a>
                             <hr>
-                            <a id="option_delete_mes"><img src="img/del_mes.png"><span>Delete messages</span></a>
-                            <a id="option_regenerate"><img src="img/regenerate.png"><span>Regenerate</span></a>
+                            <a id="option_delete_mes">
+                                <img alt="" src="img/del_mes.png">
+                                <span>Delete messages</span>
+                            </a>
+                            <a id="option_regenerate">
+                                <img alt="" src="img/regenerate.png">
+                                <span>Regenerate</span>
+                            </a>
                         </div>
                     </div>
                 </div>
                 <textarea id="send_textarea" placeholder="Not connected to API!" name="text"></textarea>
-
-
-                <script type="text/javascript">
-                    //RossAscends: this script makes the chat input text area resize vertically to match the text size (limited by CSS at 50% window height)	
-                    $('#send_textarea').on('input', function () {
-                        this.style.height = '40px';
-                        this.style.height =
-                            (this.scrollHeight) + 'px';
-                    });
-                </script>
 
                 <div id="send_but_sheld">
                     <div id="loading_mes"></div>
